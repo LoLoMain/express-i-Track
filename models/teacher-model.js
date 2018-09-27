@@ -35,6 +35,9 @@ const teacherSchema = new Schema({
     default: [],
     required: true
   },
+  classesTaught {
+    type: number
+  },
   class: ClassModel.schema
 },
 {
