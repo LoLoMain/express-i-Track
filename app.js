@@ -1,22 +1,28 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var sassMiddleware = require('node-sass-middleware');
+const express               = require('express');
+const path                  = require('path');
+const logger                = require('morgan');
+const cookieParser          = require('cookie-parser');
+const bodyParser            = require('body-parser');
+const mongoose              = require('mongoose');
+const session               = require('express-session');
+const createError           = require('http-errors');
+const passport              = require('passport');
+const cors                  = require('cors');
+const sassMiddleware        = require('node-sass-middleware');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+//Connect to Local DB
+mongoose.connect('mongodb://localhost/i-Track');
 
-var app = express();
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+// Midddlewares
 app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(sassMiddleware({
   src: path.join(__dirname, 'public'),
@@ -26,16 +32,42 @@ app.use(sassMiddleware({
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use(passport.initialize());
+app.use(passport.session);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(cors({
+  credentials: true,
+  origin: ['http://localhost:4200']
+
+}));
+
+//Create 'Current User' Var
+app.use((req, res, next) =>{
+  if(req.user) {
+    res.locals.currentUser = req.user;
+  }
+  next();
+});
+// End Middlewares
+
+
+// Routes
+// Landing page
+const index = (require('./routes/index'));
+app.use('/', index);
+
+const authorization = (require('./routes/authorization-routes'));
+app.use('/', authorizationRoutes);
+// End Routes
+
+
+// Catch 404 and forward to error handler
+app.use((req, res, next)=> {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use((err, req, res, next)=> {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
